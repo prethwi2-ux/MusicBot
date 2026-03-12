@@ -74,18 +74,33 @@ async def startup():
 
 async def shutdown():
     LOGGER.info("Shutting down MusicBot…")
+    
+    # 1. Stop core services
     try:
         await call.stop()
-    except Exception:
-        pass
+        LOGGER.info("PyTgCalls stopped.")
+    except Exception: pass
+    
     try:
         await assistant.stop()
-    except Exception:
-        pass
+        LOGGER.info("Assistant client stopped.")
+    except Exception: pass
+    
     try:
         await app.stop()
-    except Exception:
-        pass
+        LOGGER.info("Bot client stopped.")
+    except Exception: pass
+
+    # 2. Cancel ALL remaining background tasks (prevents 'loop is closed' errors)
+    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+    if tasks:
+        LOGGER.info("Cleaning up %s background tasks...", len(tasks))
+        for task in tasks:
+            task.cancel()
+        
+        # Give tasks a moment to handle cancellation
+        await asyncio.gather(*tasks, return_exceptions=True)
+
     LOGGER.info("Goodbye!")
 
 
@@ -117,13 +132,14 @@ if __name__ == "__main__":
     try:
         _loop.run_until_complete(main())
     except KeyboardInterrupt:
-        LOGGER.info("Interrupted by user.")
+        pass
     except Exception as e:
-        LOGGER.critical("CRITICAL ERROR DURING STARTUP: %s", e, exc_info=True)
+        LOGGER.critical("CRITICAL ERROR DURING RUNTIME: %s", e, exc_info=True)
     finally:
         try:
-            # Give tasks a moment to cleanup
-            _loop.run_until_complete(asyncio.sleep(0.5))
+            # Final loop resource cleanup
+            _loop.run_until_complete(_loop.shutdown_asyncgens())
             _loop.close()
+            LOGGER.info("Event loop closed.")
         except Exception:
             pass
