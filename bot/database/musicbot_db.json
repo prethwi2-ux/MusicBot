@@ -1,0 +1,13 @@
+{
+    "users": [
+        8493869970,
+        8672381091,
+        6637841218
+    ],
+    "groups": [],
+    "gbanned": [
+        6637841218
+    ],
+    "join_link": null,
+    "tutorial_text": "\ud83c\udfb5 **MusicBot Tutorial**\n\n1. Add me to your group.\n2. Promote me as admin.\n3. Start a Voice Chat.\n4. Use /play <song name>."
+}

@@ -1,0 +1,11 @@
+.venv
+__pycache__
+*.pyc
+.env
+.git
+.github
+*.log
+database.json
+downloads/
+MusicBot.session
+assistant.session
