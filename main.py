@@ -9,6 +9,13 @@ IMPORTANT — Python 3.12+ asyncio fix:
 import asyncio
 import sys
 
+# loop check/setup
+try:
+    import uvloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+except ImportError:
+    pass
+
 # Create and set an event loop explicitly — required for Python 3.12+
 # (py-tgcalls and Pyrogram call asyncio.get_event_loop() at import time)
 _loop = asyncio.new_event_loop()
@@ -105,27 +112,28 @@ async def shutdown():
 
 
 async def main():
-    await startup()
+    try:
+        await startup()
 
-    stop_event = asyncio.Event()
+        stop_event = asyncio.Event()
 
-    def _handle_signal(*_):
-        stop_event.set()
+        def _handle_signal(*_):
+            stop_event.set()
 
-    loop = asyncio.get_event_loop()
-    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop = asyncio.get_event_loop()
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            try:
+                loop.add_signal_handler(sig, _handle_signal)
+            except (NotImplementedError, RuntimeError):
+                pass
+
         try:
-            loop.add_signal_handler(sig, _handle_signal)
-        except (NotImplementedError, RuntimeError):
-            # Windows doesn't fully support add_signal_handler
+            await stop_event.wait()
+        except KeyboardInterrupt:
             pass
 
-    try:
-        await stop_event.wait()
-    except KeyboardInterrupt:
-        pass
-
-    await shutdown()
+    finally:
+        await shutdown()
 
 
 if __name__ == "__main__":
