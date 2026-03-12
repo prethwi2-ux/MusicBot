@@ -2,11 +2,10 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Always load .env from the project root if it exists
+# Always load .env from the project root (directory containing this file's parent)
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _ENV_PATH = _PROJECT_ROOT / ".env"
-if _ENV_PATH.exists():
-    load_dotenv(_ENV_PATH, override=True)
+load_dotenv(_ENV_PATH, override=True)
 
 
 

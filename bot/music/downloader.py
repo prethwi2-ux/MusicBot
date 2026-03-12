@@ -136,6 +136,7 @@ async def download_audio(query: str, requested_by: int = 0, requested_name: str 
             
             if target_itag:
                 stream_url = target_itag.get("url")
+                LOGGER.info("Selected combined itag %s for video streaming (480p target).", target_itag.get("format_id"))
             else:
                 # Fallback: Find any combined format with height <= 480
                 combined = [f for f in formats if f.get("vcodec") != "none" and f.get("acodec") != "none" and f.get("height", 0) <= 480]

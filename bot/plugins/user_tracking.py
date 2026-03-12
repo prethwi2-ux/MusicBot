@@ -6,7 +6,6 @@ This is critical for the /broadcast feature.
 from pyrogram import Client, filters
 from pyrogram.types import Message, ChatMemberUpdated
 from bot.database.settings_db import db
-from bot.logger import LOGGER
 
 @Client.on_message(group=-1)
 async def track_everything(client: Client, message: Message):

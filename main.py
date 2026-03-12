@@ -27,7 +27,11 @@ from bot.music.player import register_callbacks, auto_leave_task
 from bot.logger import LOGGER, log_event, set_client
 
 
-
+# Diagnostic: Log ALL callback queries globally
+@app.on_callback_query(group=-1)
+async def _global_callback_logger(client: Client, query: CallbackQuery):
+    LOGGER.info("GLOBAL_BTNCALL | data=%s | user=%s", query.data, query.from_user.id)
+    # Don't acknowledge here, let the actual handler do it or it will vanish
 
 
 async def startup():

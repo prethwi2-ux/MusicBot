@@ -43,6 +43,7 @@ def _make_stream(audio: AudioInfo, seek_secs: int = 0) -> MediaStream:
 
     extra_ffmpeg = f"-ss {seek_secs}" if seek_secs > 0 else ""
     
+    LOGGER.info("Creating MediaStream for %s (video=%s)", audio.title, audio.is_video)
     if audio.is_video:
         return MediaStream(
             stream_path,
