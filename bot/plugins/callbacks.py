@@ -201,6 +201,7 @@ async def owner_callbacks(client: Client, query: CallbackQuery):
             ],
             [
                 InlineKeyboardButton("🔄 Refresh Groups", callback_data="owner_refresh_groups"),
+                InlineKeyboardButton("🔄 Restart Bot", callback_data="owner_restart"),
             ]
         ])
         await query.message.edit_text(text, reply_markup=buttons)
@@ -243,12 +244,27 @@ async def owner_callbacks(client: Client, query: CallbackQuery):
         from bot.plugins.admin import _execute_broadcast
         await _execute_broadcast(client, query.message, target_msg)
 
-    elif action == "owner_refresh_groups":
-        await query.answer("🔄 Refreshing...", show_alert=False)
         await query.message.edit_text("🔄 **Refreshing group list...**\nScanning all dialogs. Please wait.")
         new_count = await db.refresh_groups(assistant)
         buttons = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="owner_settings")]])
         await query.message.edit_text(f"✅ **Refresh Completed**\nAdded `{new_count}` new groups to the database.", reply_markup=buttons)
+
+    elif action == "owner_restart":
+        await query.answer("🔄 Restarting bot...", show_alert=True)
+        await query.message.edit_text("🔄 **Bot is restarting...**\nBe back in a few seconds!")
+        
+        import os
+        import sys
+        # Cleanup
+        try:
+            from bot import call, assistant, app
+            await call.stop()
+            await assistant.stop()
+            await app.stop()
+        except: pass
+        
+        # Replace current process
+        os.execl(sys.executable, sys.executable, *sys.argv)
 
     elif action == "owner_broadcast_info":
         await query.message.edit_text(

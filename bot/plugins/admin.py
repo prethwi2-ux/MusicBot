@@ -201,6 +201,7 @@ async def settings_cmd(client: Client, message: Message):
         ],
         [
             InlineKeyboardButton("🔄 Refresh Groups", callback_data="owner_refresh_groups"),
+            InlineKeyboardButton("🔄 Restart Bot", callback_data="owner_restart"),
         ]
     ])
     await message.reply(text, reply_markup=buttons)
@@ -316,3 +317,23 @@ async def activevc_cmd(client: Client, message: Message):
         track = q.current_track
         lines.append(f"• `{cid}` — **{track.title if track else 'idle'}**")
     await message.reply("\n".join(lines))
+
+
+@Client.on_message(filters.command("restart") & filters.private)
+@owner_only
+async def restart_cmd(client: Client, message: Message):
+    """Restarts the bot process."""
+    import os
+    import sys
+    await message.reply("🔄 **Restarting...**\nPlease wait a moment.")
+    
+    # Cleanup
+    try:
+        from bot import call, assistant, app
+        await call.stop()
+        await assistant.stop()
+        await app.stop()
+    except: pass
+    
+    # Replace current process
+    os.execl(sys.executable, sys.executable, *sys.argv)
