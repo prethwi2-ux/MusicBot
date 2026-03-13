@@ -153,34 +153,28 @@ async def _execute_broadcast(client: Client, message: Message, target_msg: Messa
     sent = 0
     fail = 0
     
-    # ── 1. Broadcast to USERS (using Bot Client) ──
+    # ── 1. Broadcast to USERS ──
     for uid in users:
         try:
             await target_msg.copy(uid)
             sent += 1
         except Exception:
-            # We don't log every fail to avoiding spamming console
             fail += 1
         
         await _update_status(status, sent, fail, total)
-        await asyncio.sleep(0.1)  # Flood protection
+        await asyncio.sleep(0.05)
 
-    # ── 2. Broadcast to GROUPS (using Assistant Client) ──
-    # Assistant accounts have better "meeting" history for group peers
+    # ── 2. Broadcast to GROUPS ──
     for gid in groups:
         try:
-            await assistant.copy_message(
-                chat_id=gid,
-                from_chat_id=target_msg.chat.id,
-                message_id=target_msg.id
-            )
+            await target_msg.copy(gid)
             sent += 1
         except Exception as e:
             fail += 1
             LOGGER.warning("Broadcast: Failed to group %s: %s", gid, e)
         
         await _update_status(status, sent, fail, total)
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.05)
 
     text = (
         f"✅ **Broadcast Completed**\n\n"

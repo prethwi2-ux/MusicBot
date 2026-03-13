@@ -49,7 +49,7 @@ assistant = Client(
     api_id=config.API_ID,
     api_hash=config.API_HASH,
     session_string=config.STRING_SESSION,
-    plugins=dict(root="bot/plugins"),
+    in_memory=True,
 )
 
 # ── PyTgCalls v2 wrapper around the ASSISTANT (userbot) ─────────────────────────
