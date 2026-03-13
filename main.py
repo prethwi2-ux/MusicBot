@@ -82,30 +82,44 @@ async def startup():
 async def shutdown():
     LOGGER.info("Shutting down MusicBot…")
     
-    # 1. Stop core services
-    try:
-        await call.stop()
-        LOGGER.info("PyTgCalls stopped.")
-    except Exception: pass
+    # 1. Stop core services (concurrently for efficiency)
+    shutdown_tasks = []
     
-    try:
-        await assistant.stop()
-        LOGGER.info("Assistant client stopped.")
-    except Exception: pass
-    
-    try:
-        await app.stop()
-        LOGGER.info("Bot client stopped.")
-    except Exception: pass
+    async def stop_call():
+        try:
+            await call.stop()
+            LOGGER.info("PyTgCalls stopped.")
+        except Exception as e:
+            LOGGER.debug("Error stopping PyTgCalls: %s", e)
+    shutdown_tasks.append(stop_call())
 
-    # 2. Cancel ALL remaining background tasks (prevents 'loop is closed' errors)
+    async def stop_assistant():
+        try:
+            await assistant.stop()
+            LOGGER.info("Assistant client stopped.")
+        except Exception as e:
+            LOGGER.debug("Error stopping assistant: %s", e)
+    shutdown_tasks.append(stop_assistant())
+
+    async def stop_app():
+        try:
+            await app.stop()
+            LOGGER.info("Bot client stopped.")
+        except Exception as e:
+            LOGGER.debug("Error stopping bot: %s", e)
+    shutdown_tasks.append(stop_app())
+
+    if shutdown_tasks:
+        await asyncio.gather(*shutdown_tasks, return_exceptions=True)
+
+    # 2. Cancel ALL remaining background tasks
     tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
     if tasks:
         LOGGER.info("Cleaning up %s background tasks...", len(tasks))
         for task in tasks:
             task.cancel()
         
-        # Give tasks a moment to handle cancellation
+        # Wait until everything is settled
         await asyncio.gather(*tasks, return_exceptions=True)
 
     LOGGER.info("Goodbye!")
