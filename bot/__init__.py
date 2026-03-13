@@ -40,7 +40,6 @@ app = Client(
     bot_token=config.BOT_TOKEN,
     plugins=dict(root="bot/plugins"),
     sleep_threshold=60,
-    in_memory=True,
 )
 
 # ── Assistant (userbot) Client for joining voice chats ──────────────────────────
@@ -50,7 +49,6 @@ assistant = Client(
     api_id=config.API_ID,
     api_hash=config.API_HASH,
     session_string=config.STRING_SESSION,
-    in_memory=True,
 )
 
 # ── PyTgCalls v2 wrapper around the ASSISTANT (userbot) ─────────────────────────

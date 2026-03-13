@@ -1,0 +1,20 @@
+﻿pyrogram.session.session | 
+Session initialized: Layer 
+220
+2026-03-13 06:12:51 | INFO 
+    | 
+pyrogram.session.session | 
+Device: CPython 3.14.3 - 
+Pyrogram 2.3.69
+2026-03-13 06:12:51 | INFO 
+    | 
+pyrogram.session.session | 
+System: Windows 11 (en)
+2026-03-13 06:12:51 | INFO 
+    | 
+pyrogram.session.session | 
+Session started
+2026-03-13 06:12:51 | INFO 
+    | 
+pyrogram.session.session | 
+PingTask started

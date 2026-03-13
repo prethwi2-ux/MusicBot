@@ -1,7 +1,0 @@
-*.session
-*.session-journal
-__pycache__/
-.venv/
-downloads/
-*.log
-assistant_session.txt
