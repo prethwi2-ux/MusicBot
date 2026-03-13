@@ -8,9 +8,10 @@ from pyrogram.types import Message
 from bot.music.queue import get_queue
 from bot.music.helpers import build_queue_text
 from bot.utils.decorators import anti_spam, admin_only, log_cmd
+from bot.config import COMMAND_PREFIXES
 
 
-@Client.on_message(filters.command(["queue", "q"]) & filters.group)
+@Client.on_message(filters.command(["queue", "q"], prefixes=COMMAND_PREFIXES) & filters.group)
 @anti_spam
 @log_cmd
 async def queue_cmd(client: Client, message: Message):
@@ -23,7 +24,7 @@ async def queue_cmd(client: Client, message: Message):
     await message.reply(text)
 
 
-@Client.on_message(filters.command("shuffle") & filters.group)
+@Client.on_message(filters.command("shuffle", prefixes=COMMAND_PREFIXES) & filters.group)
 @anti_spam
 @admin_only
 @log_cmd

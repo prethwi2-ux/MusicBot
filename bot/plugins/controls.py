@@ -10,9 +10,10 @@ from bot.music.player import pause_stream, resume_stream, stop_stream, skip_stre
 from bot.music.queue import get_queue
 from bot.music.helpers import build_now_playing_text, build_control_buttons
 from bot.utils.decorators import admin_only, anti_spam, log_cmd
+from bot.config import COMMAND_PREFIXES
 
 
-@Client.on_message(filters.command("pause") & filters.group)
+@Client.on_message(filters.command("pause", prefixes=COMMAND_PREFIXES) & filters.group)
 @anti_spam
 @admin_only
 @log_cmd
@@ -25,7 +26,7 @@ async def pause_cmd(client: Client, message: Message):
     await message.reply("⏸ Paused." if ok else "❌ Could not pause.")
 
 
-@Client.on_message(filters.command("resume") & filters.group)
+@Client.on_message(filters.command("resume", prefixes=COMMAND_PREFIXES) & filters.group)
 @anti_spam
 @admin_only
 @log_cmd
@@ -38,7 +39,7 @@ async def resume_cmd(client: Client, message: Message):
     await message.reply("▶️ Resumed." if ok else "❌ Could not resume.")
 
 
-@Client.on_message(filters.command("stop") & filters.group)
+@Client.on_message(filters.command("stop", prefixes=COMMAND_PREFIXES) & filters.group)
 @anti_spam
 @admin_only
 @log_cmd
@@ -47,7 +48,7 @@ async def stop_cmd(client: Client, message: Message):
     await message.reply("⏹ Stopped and cleared the queue.")
 
 
-@Client.on_message(filters.command("skip") & filters.group)
+@Client.on_message(filters.command(["skip", "next"], prefixes=COMMAND_PREFIXES) & filters.group)
 @anti_spam
 @admin_only
 @log_cmd

@@ -30,6 +30,7 @@ API_HASH: str = os.environ.get("API_HASH", "")
 BOT_TOKEN: str = os.environ.get("BOT_TOKEN", "")
 STRING_SESSION: str = os.environ.get("STRING_SESSION", "")
 YOUTUBE_API_KEY: str = os.environ.get("YOUTUBE_API_KEY", "")
+COMMAND_PREFIXES: list = os.environ.get("COMMAND_PREFIXES", "/ ! .").split()
 
 # ── Channels ────────────────────────────────────────────────────────────────────
 DATABASE_CHANNEL_ID: int = _get_int("DATABASE_CHANNEL_ID")

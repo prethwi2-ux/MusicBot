@@ -29,7 +29,7 @@ from bot import app, assistant, call
 from bot import config
 from pytgcalls import filters as tgfilters
 from pyrogram import Client, filters
-from pyrogram.types import CallbackQuery
+from pyrogram.types import CallbackQuery, BotCommand
 from bot.music.player import register_callbacks, auto_leave_task
 from bot.logger import LOGGER, log_event, set_client
 
@@ -39,6 +39,30 @@ from bot.logger import LOGGER, log_event, set_client
 async def _global_callback_logger(client: Client, query: CallbackQuery):
     LOGGER.info("GLOBAL_BTNCALL | data=%s | user=%s", query.data, query.from_user.id)
     # Don't acknowledge here, let the actual handler do it or it will vanish
+
+
+async def set_bot_commands(client: Client):
+    """Registers bot commands with Telegram for better UI visibility."""
+    commands = [
+        BotCommand("play", "Play a song (Youtube/Link/File)"),
+        BotCommand("p", "Short for /play"),
+        BotCommand("vplay", "Play a video"),
+        BotCommand("vp", "Short for /vplay"),
+        BotCommand("skip", "Skip current track"),
+        BotCommand("pause", "Pause stream"),
+        BotCommand("resume", "Resume stream"),
+        BotCommand("stop", "Stop playback and leave VC"),
+        BotCommand("queue", "Show current queue"),
+        BotCommand("nowplaying", "Show current song details"),
+        BotCommand("loop", "Change loop mode"),
+        BotCommand("volume", "Change playback volume"),
+        BotCommand("help", "Get help message"),
+    ]
+    try:
+        await client.set_my_commands(commands)
+        LOGGER.info("Successfully registered bot commands.")
+    except Exception as e:
+        LOGGER.error("Failed to register bot commands: %s", e)
 
 
 async def startup():
@@ -70,6 +94,9 @@ async def startup():
 
     # Start auto-leave background task
     asyncio.create_task(auto_leave_task(call))
+
+    # Set bot commands in menu
+    await set_bot_commands(app)
 
     await log_event(
         "Bot Started",
