@@ -39,7 +39,7 @@ class AudioInfo:
 
 def _ydl_opts() -> dict:
     """Options for extracting streaming URL only."""
-    return {
+    opts = {
         "format": "bestaudio/best",
         "quiet": True,
         "no_warnings": True,
@@ -47,10 +47,13 @@ def _ydl_opts() -> dict:
         "skip_download": True,
         "force_generic_extractor": False,
     }
+    if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
+        opts["cookiefile"] = config.COOKIES_FILE
+    return opts
 
 
 def _search_opts() -> dict:
-    return {
+    opts = {
         "format": "bestaudio/best",
         "quiet": True,
         "no_warnings": True,
@@ -58,6 +61,9 @@ def _search_opts() -> dict:
         "extract_flat": "in_playlist",
         "skip_download": True,
     }
+    if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
+        opts["cookiefile"] = config.COOKIES_FILE
+    return opts
 
 
 _YT_REGEX = re.compile(
@@ -310,6 +316,8 @@ def search_youtube_results_ydl(query: str, limit: int = 5) -> list[dict]:
     results = []
     try:
         opts = {**_search_opts(), "extract_flat": True}
+        if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
+            opts["cookiefile"] = config.COOKIES_FILE
         with yt_dlp.YoutubeDL(opts) as ydl:
             data = ydl.extract_info(search_query, download=False)
             for entry in (data.get("entries") or [])[:limit]:
@@ -329,6 +337,8 @@ def search_youtube_results_ydl(query: str, limit: int = 5) -> list[dict]:
 def _fetch_info(url: str) -> Optional[dict]:
     """Fetch video metadata without downloading - blocking."""
     opts = {"quiet": True, "no_warnings": True, "skip_download": True, "noplaylist": True}
+    if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
+        opts["cookiefile"] = config.COOKIES_FILE
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             return ydl.extract_info(url, download=False)
