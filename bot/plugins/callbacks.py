@@ -4,7 +4,7 @@ Handles InlineKeyboard button presses for music controls.
 All callbacks check if user is admin before acting.
 """
 from pyrogram import Client, filters
-from pyrogram.types import CallbackQuery
+from pyrogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton, ForceReply
 
 from bot import config, call, assistant
 from bot.music.player import pause_stream, resume_stream, stop_stream, skip_stream, set_volume
@@ -13,7 +13,6 @@ from bot.music.helpers import build_now_playing_text, build_control_buttons
 from bot.utils.admin_check import is_admin
 from bot.logger import LOGGER, log_error
 from bot.database.settings_db import db
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ForceReply
 
 LOGGER.info("PLUGINS: Loading callbacks.py...")
 
