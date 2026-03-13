@@ -1,9 +1,7 @@
 *.session
 *.session-journal
 __pycache__/
-.env
 .venv/
 downloads/
 *.log
 assistant_session.txt
-database.json
