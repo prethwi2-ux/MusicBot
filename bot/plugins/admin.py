@@ -13,6 +13,7 @@ from bot import call, app, assistant
 from bot.utils.decorators import log_cmd, fast_cmd
 from bot.utils.admin_check import is_sudo
 from bot.database.settings_db import db
+from bot.logger import LOGGER
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import time
 
@@ -147,72 +148,66 @@ async def _execute_broadcast(client: Client, message: Message, target_msg: Messa
         await message.reply("❌ Database is empty. No targets found.")
         return
 
-    status = await message.reply(
-        f"🚀 **Broadcast Started**\n\n"
-        f"📊 **Targeting**: `{len(users)}` users, `{len(groups)}` groups\n"
-        f"⏳ **Progress**: `0%` (0/{total})"
-    )
+    status = await message.reply(f"🚀 **Broadcasting...**\n`[          ]` 0%")
     
-    sent_u, fail_u = 0, 0
-    sent_g, fail_g = 0, 0
+    sent = 0
+    fail = 0
     
-    async def try_send(peer_id, is_group=False):
-        nonlocal sent_u, fail_u, sent_g, fail_g
+    # ── 1. Broadcast to USERS (using Bot Client) ──
+    for uid in users:
         try:
-            await target_msg.copy(peer_id)
-            if is_group: sent_g += 1
-            else: sent_u += 1
-            return True
-        except Exception as e:
-            # If peer not found in this session, try to "meet" them
-            if "PEER_ID_INVALID" in str(e):
-                try:
-                    if is_group: await client.get_chat(peer_id)
-                    else: await client.get_users(peer_id)
-                    await target_msg.copy(peer_id)
-                    if is_group: sent_g += 1
-                    else: sent_u += 1
-                    return True
-                except Exception: pass
-            
-            if is_group: fail_g += 1
-            else: fail_u += 1
-            LOGGER.warning("Broadcast: Failed to %s %s: %s", "group" if is_group else "user", peer_id, e)
-            return False
-
-    # Process users
-    for i, uid in enumerate(users, 1):
-        await try_send(uid, False)
-        if i % 10 == 0 or i == len(users):
-            percent = int((i / total) * 100)
-            await status.edit(
-                f"🚀 **Broadcasting...**\n\n"
-                f"👤 **Users**: `{i}/{len(users)}` processed\n"
-                f"📊 **Status**: `{percent}%` completed"
-            )
-        await asyncio.sleep(0.05)
-
-    # Process groups
-    for i, gid in enumerate(groups, 1):
-        await try_send(gid, True)
-        idx = len(users) + i
-        if i % 5 == 0 or i == len(groups):
-            percent = int((idx / total) * 100)
-            await status.edit(
-                f"🚀 **Broadcasting...**\n\n"
-                f"👤 **Users**: `{sent_u + fail_u}`\n"
-                f"👥 **Groups**: `{i}/{len(groups)}` processed\n"
-                f"📊 **Status**: `{percent}%` completed"
-            )
-        await asyncio.sleep(0.1)
+            await target_msg.copy(uid)
+            sent += 1
+        except Exception:
+            # We don't log every fail to avoiding spamming console
+            fail += 1
         
-    final_text = (
+        await _update_status(status, sent, fail, total)
+        await asyncio.sleep(0.1)  # Flood protection
+
+    # ── 2. Broadcast to GROUPS (using Assistant Client) ──
+    # Assistant accounts have better "meeting" history for group peers
+    for gid in groups:
+        try:
+            await assistant.copy_message(
+                chat_id=gid,
+                from_chat_id=target_msg.chat.id,
+                message_id=target_msg.id
+            )
+            sent += 1
+        except Exception as e:
+            fail += 1
+            LOGGER.warning("Broadcast: Failed to group %s: %s", gid, e)
+        
+        await _update_status(status, sent, fail, total)
+        await asyncio.sleep(0.1)
+
+    text = (
         f"✅ **Broadcast Completed**\n\n"
-        f"👤 **Users**: `{sent_u}` sent, `{fail_u}` failed\n"
-        f"👥 **Groups**: `{sent_g}` sent, `{fail_g}` failed\n\n"
-        f"✨ Total Delivered: `{sent_u + sent_g}`"
+        f"🏁 **Total Sent**: `{sent}`\n"
+        f"❌ **Total Failed**: `{fail}`\n"
+        f"📊 **Success Rate**: `{int(sent/total*100) if total > 0 else 0}%`"
     )
-    await status.edit(final_text)
+    await status.edit(text)
+
+
+async def _update_status(status_msg: Message, sent: int, fail: int, total: int):
+    """Helper to update a simple progress bar."""
+    if (sent + fail) % 10 != 0 and (sent + fail) != total:
+        return # Only update every 10 messages to avoid RateLimit
+    
+    percent = int((sent + fail) / total * 100)
+    filled = int(percent / 10)
+    bar = "█" * filled + "░" * (10 - filled)
+    
+    try:
+        await status_msg.edit(
+            f"🚀 **Broadcasting...**\n"
+            f"`[{bar}]` {percent}%\n\n"
+            f"✅ Sent: `{sent}` | ❌ Fail: `{fail}`"
+        )
+    except Exception:
+        pass
 
 
 @Client.on_message(filters.command("settings") & filters.private)
