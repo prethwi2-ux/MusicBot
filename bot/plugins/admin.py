@@ -142,41 +142,77 @@ async def _execute_broadcast(client: Client, message: Message, target_msg: Messa
     users = db.users
     groups = db.groups
     
-    if not users and not groups:
+    total = len(users) + len(groups)
+    if total == 0:
         await message.reply("❌ Database is empty. No targets found.")
         return
 
-    status = await message.reply(f"🚀 **Broadcasting...**\nTargeting `{len(users)}` users and `{len(groups)}` groups.")
+    status = await message.reply(
+        f"🚀 **Broadcast Started**\n\n"
+        f"📊 **Targeting**: `{len(users)}` users, `{len(groups)}` groups\n"
+        f"⏳ **Progress**: `0%` (0/{total})"
+    )
     
-    sent_u = 0
-    fail_u = 0
-    sent_g = 0
-    fail_g = 0
+    sent_u, fail_u = 0, 0
+    sent_g, fail_g = 0, 0
     
-    for uid in users:
+    async def try_send(peer_id, is_group=False):
+        nonlocal sent_u, fail_u, sent_g, fail_g
         try:
-            await target_msg.copy(uid)
-            sent_u += 1
-            await asyncio.sleep(0.05)
+            await target_msg.copy(peer_id)
+            if is_group: sent_g += 1
+            else: sent_u += 1
+            return True
         except Exception as e:
-            fail_u += 1
-            LOGGER.warning("Broadcast: Failed to user %s: %s", uid, e)
+            # If peer not found in this session, try to "meet" them
+            if "PEER_ID_INVALID" in str(e):
+                try:
+                    if is_group: await client.get_chat(peer_id)
+                    else: await client.get_users(peer_id)
+                    await target_msg.copy(peer_id)
+                    if is_group: sent_g += 1
+                    else: sent_u += 1
+                    return True
+                except Exception: pass
+            
+            if is_group: fail_g += 1
+            else: fail_u += 1
+            LOGGER.warning("Broadcast: Failed to %s %s: %s", "group" if is_group else "user", peer_id, e)
+            return False
+
+    # Process users
+    for i, uid in enumerate(users, 1):
+        await try_send(uid, False)
+        if i % 10 == 0 or i == len(users):
+            percent = int((i / total) * 100)
+            await status.edit(
+                f"🚀 **Broadcasting...**\n\n"
+                f"👤 **Users**: `{i}/{len(users)}` processed\n"
+                f"📊 **Status**: `{percent}%` completed"
+            )
+        await asyncio.sleep(0.05)
+
+    # Process groups
+    for i, gid in enumerate(groups, 1):
+        await try_send(gid, True)
+        idx = len(users) + i
+        if i % 5 == 0 or i == len(groups):
+            percent = int((idx / total) * 100)
+            await status.edit(
+                f"🚀 **Broadcasting...**\n\n"
+                f"👤 **Users**: `{sent_u + fail_u}`\n"
+                f"👥 **Groups**: `{i}/{len(groups)}` processed\n"
+                f"📊 **Status**: `{percent}%` completed"
+            )
+        await asyncio.sleep(0.1)
         
-    for gid in groups:
-        try:
-            await target_msg.copy(gid)
-            sent_g += 1
-            await asyncio.sleep(0.05)
-        except Exception as e:
-            fail_g += 1
-            LOGGER.warning("Broadcast: Failed to group %s: %s", gid, e)
-        
-    text = (
+    final_text = (
         f"✅ **Broadcast Completed**\n\n"
         f"👤 **Users**: `{sent_u}` sent, `{fail_u}` failed\n"
-        f"👥 **Groups**: `{sent_g}` sent, `{fail_g}` failed"
+        f"👥 **Groups**: `{sent_g}` sent, `{fail_g}` failed\n\n"
+        f"✨ Total Delivered: `{sent_u + sent_g}`"
     )
-    await status.edit(text)
+    await status.edit(final_text)
 
 
 @Client.on_message(filters.command("settings") & filters.private)
