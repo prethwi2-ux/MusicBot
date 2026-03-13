@@ -12,12 +12,13 @@ from bot import config
 from bot.music.queue import get_queue, active_queues
 from bot.music.helpers import build_now_playing_text, build_control_buttons, format_duration
 from bot.database.cache import audio_cache
-from bot.utils.decorators import anti_spam, log_cmd
+from bot.utils.decorators import anti_spam, log_cmd, fast_cmd
 
 _START_TIME = time.time()
 
 
-@Client.on_message(filters.command("ping") & (filters.group | filters.private))
+@Client.on_message(filters.command("ping") & (filters.group | filters.private), group=1)
+@fast_cmd
 @anti_spam
 @log_cmd
 async def ping_cmd(client: Client, message: Message):
@@ -27,7 +28,8 @@ async def ping_cmd(client: Client, message: Message):
     await msg.edit(f"🏓 **Pong!**\n📶 Latency: `{elapsed:.1f}ms`")
 
 
-@Client.on_message(filters.command("stats") & (filters.group | filters.private))
+@Client.on_message(filters.command("stats") & (filters.group | filters.private), group=1)
+@fast_cmd
 @anti_spam
 @log_cmd
 async def stats_cmd(client: Client, message: Message):
@@ -63,7 +65,8 @@ async def stats_cmd(client: Client, message: Message):
     await message.reply(text)
 
 
-@Client.on_message(filters.command(["np", "now", "nowplaying"]) & filters.group)
+@Client.on_message(filters.command(["np", "now", "nowplaying"]) & filters.group, group=1)
+@fast_cmd
 @anti_spam
 @log_cmd
 async def np_cmd(client: Client, message: Message):

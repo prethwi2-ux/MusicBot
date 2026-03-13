@@ -29,7 +29,7 @@ from bot import app, assistant, call
 from bot import config
 from pytgcalls import filters as tgfilters
 from pyrogram import Client, filters
-from pyrogram.types import CallbackQuery, BotCommand
+from pyrogram.types import CallbackQuery
 from bot.music.player import register_callbacks, auto_leave_task
 from bot.logger import LOGGER, log_event, set_client
 
@@ -39,30 +39,6 @@ from bot.logger import LOGGER, log_event, set_client
 async def _global_callback_logger(client: Client, query: CallbackQuery):
     LOGGER.info("GLOBAL_BTNCALL | data=%s | user=%s", query.data, query.from_user.id)
     # Don't acknowledge here, let the actual handler do it or it will vanish
-
-
-async def set_bot_commands(client: Client):
-    """Registers bot commands with Telegram for better UI visibility."""
-    commands = [
-        BotCommand("play", "Play a song (Youtube/Link/File)"),
-        BotCommand("p", "Short for /play"),
-        BotCommand("vplay", "Play a video"),
-        BotCommand("vp", "Short for /vplay"),
-        BotCommand("skip", "Skip current track"),
-        BotCommand("pause", "Pause stream"),
-        BotCommand("resume", "Resume stream"),
-        BotCommand("stop", "Stop playback and leave VC"),
-        BotCommand("queue", "Show current queue"),
-        BotCommand("nowplaying", "Show current song details"),
-        BotCommand("loop", "Change loop mode"),
-        BotCommand("volume", "Change playback volume"),
-        BotCommand("help", "Get help message"),
-    ]
-    try:
-        await client.set_my_commands(commands)
-        LOGGER.info("Successfully registered bot commands.")
-    except Exception as e:
-        LOGGER.error("Failed to register bot commands: %s", e)
 
 
 async def startup():
@@ -95,9 +71,6 @@ async def startup():
     # Start auto-leave background task
     asyncio.create_task(auto_leave_task(call))
 
-    # Set bot commands in menu
-    await set_bot_commands(app)
-
     await log_event(
         "Bot Started",
         f"**@{me.username}** (`{me.id}`) is online and ready! 🎵",
@@ -109,7 +82,18 @@ async def startup():
 async def shutdown():
     LOGGER.info("Shutting down MusicBot…")
     
-    # 1. Stop core services
+    # 1. Cancel ALL remaining background tasks first
+    # This prevents tasks from trying to use clients/DB after they are stopped
+    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+    if tasks:
+        LOGGER.info("Cleaning up %s background tasks...", len(tasks))
+        for task in tasks:
+            task.cancel()
+        
+        # Give tasks a moment to handle cancellation
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+    # 2. Stop core services
     try:
         await call.stop()
         LOGGER.info("PyTgCalls stopped.")
@@ -124,16 +108,6 @@ async def shutdown():
         await app.stop()
         LOGGER.info("Bot client stopped.")
     except Exception: pass
-
-    # 2. Cancel ALL remaining background tasks (prevents 'loop is closed' errors)
-    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
-    if tasks:
-        LOGGER.info("Cleaning up %s background tasks...", len(tasks))
-        for task in tasks:
-            task.cancel()
-        
-        # Give tasks a moment to handle cancellation
-        await asyncio.gather(*tasks, return_exceptions=True)
 
     LOGGER.info("Goodbye!")
 

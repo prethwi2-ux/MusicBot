@@ -13,12 +13,13 @@ from bot.music.downloader import download_audio
 from bot.music.player import start_stream
 from bot.music.queue import get_queue
 from bot.music.helpers import build_now_playing_text, build_control_buttons
-from bot.config import db, COMMAND_PREFIXES
-from bot.utils.decorators import anti_spam, log_cmd
+from bot.database.settings_db import db
+from bot.utils.decorators import anti_spam, log_cmd, fast_cmd
 from bot.logger import log_error
 
 
-@Client.on_message(filters.command(["play", "p", "vplay", "vp", "st", "startstream", "music"], prefixes=COMMAND_PREFIXES) & filters.group)
+@Client.on_message(filters.command(["play", "p", "vplay", "vp"]) & filters.group, group=1)
+@fast_cmd
 @anti_spam
 @log_cmd
 async def play_command(client: Client, message: Message):

@@ -68,3 +68,7 @@ group_settings_cache = TTLLRUCache(maxsize=2000, ttl=3600 * 24)
 
 # Anti-spam: Key: str(user_id) → Value: list of timestamps
 spam_cache: dict[str, list[float]] = {}
+
+# Command Deduplication: Key: str(msg_id) → Value: True
+# To prevent bot and assistant from processing the same command twice
+command_cache = TTLLRUCache(maxsize=1000, ttl=60)

@@ -9,10 +9,11 @@ from bot import call
 from bot.music.player import seek_stream
 from bot.music.queue import get_queue
 from bot.music.helpers import format_duration
-from bot.utils.decorators import admin_only, anti_spam, log_cmd
+from bot.utils.decorators import admin_only, anti_spam, log_cmd, fast_cmd
 
 
-@Client.on_message(filters.command("seek") & filters.group)
+@Client.on_message(filters.command("seek") & filters.group, group=1)
+@fast_cmd
 @anti_spam
 @admin_only
 @log_cmd

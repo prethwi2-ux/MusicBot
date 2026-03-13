@@ -10,7 +10,7 @@ from bot import config
 from bot.music.queue import get_queue, active_queues, delete_queue
 from bot.music.player import stop_stream
 from bot import call, app, assistant
-from bot.utils.decorators import log_cmd
+from bot.utils.decorators import log_cmd, fast_cmd
 from bot.utils.admin_check import is_sudo
 from bot.database.settings_db import db
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -74,7 +74,8 @@ async def track_group_leave(client: Client, message: Message):
         db.remove_group(message.chat.id)
 
 
-@Client.on_message(filters.command("help") & (filters.group | filters.private))
+@Client.on_message(filters.command("help") & (filters.group | filters.private), group=1)
+@fast_cmd
 async def help_cmd(client: Client, message: Message):
     text = (
         "🎵 **MusicBot Commands**\n\n"

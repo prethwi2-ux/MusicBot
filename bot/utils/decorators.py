@@ -9,7 +9,7 @@ from pyrogram import Client
 from pyrogram.types import Message
 
 from bot import config
-from bot.database.cache import spam_cache
+from bot.database.cache import spam_cache, command_cache
 from bot.utils.admin_check import is_admin
 from bot.logger import log_command, log_error
 
@@ -79,4 +79,31 @@ def log_cmd(func):
                 chat_id=message.chat.id if message.chat else None,
                 user_id=message.from_user.id if message.from_user else None,
             )
+    return wrapper
+
+
+def fast_cmd(func):
+    """
+    Decorator for high-priority command handlers.
+    1. Prevents bots from responding to themselves/each other.
+    2. Uses a TTL cache to ensure only ONE client processes a command.
+    """
+    @functools.wraps(func)
+    async def wrapper(client: Client, message: Message, *args, **kwargs):
+        # 1. Ignore messages from the bot itself or the assistant account
+        me = await client.get_me()
+        if message.from_user and message.from_user.id == me.id:
+            return
+
+        # 2. Check if this message was already processed by another client instance
+        # Use a unique key for the message across the entire system
+        msg_key = f"{message.chat.id}:{message.id}"
+        if msg_key in command_cache:
+            return
+        
+        # Mark as processed immediately
+        command_cache.set(msg_key, True)
+
+        # 3. Proceed to handler
+        return await func(client, message, *args, **kwargs)
     return wrapper

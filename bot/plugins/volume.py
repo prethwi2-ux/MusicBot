@@ -8,10 +8,11 @@ from pyrogram.types import Message
 from bot import call
 from bot.music.player import set_volume
 from bot.music.queue import get_queue
-from bot.utils.decorators import admin_only, anti_spam, log_cmd
+from bot.utils.decorators import admin_only, anti_spam, log_cmd, fast_cmd
 
 
-@Client.on_message(filters.command("volume") & filters.group)
+@Client.on_message(filters.command("volume") & filters.group, group=1)
+@fast_cmd
 @anti_spam
 @admin_only
 @log_cmd
