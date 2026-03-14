@@ -9,6 +9,7 @@ from pyrogram.types import Message
 from bot import config
 from bot.music.queue import get_queue, active_queues, delete_queue
 from bot.music.player import stop_stream
+from bot.music.helpers import delete_later
 from bot import call, app, assistant
 from bot.utils.decorators import log_cmd, fast_cmd
 from bot.utils.admin_check import is_sudo
@@ -65,7 +66,8 @@ async def track_group_join(client: Client, message: Message):
     for user in message.new_chat_members:
         if user.id == me.id:
             db.add_group(message.chat.id)
-            await message.reply("🎵 **MusicBot Joined!**\nUse `/play` to start some music.")
+            msg = await message.reply("🎵 **MusicBot Joined!**\nUse `/play` to start some music.")
+            asyncio.create_task(delete_later(msg, delay=15))
 
 
 @Client.on_message(filters.left_chat_member)
@@ -104,7 +106,8 @@ async def help_cmd(client: Client, message: Message):
         buttons = InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Menu", callback_data="menu_start")]])
         await message.reply(text, reply_markup=buttons)
     else:
-        await message.reply(text)
+        msg = await message.reply(text)
+        asyncio.create_task(delete_later(msg, delay=20))
 
 
 @Client.on_message(filters.private & ~filters.command(["start", "help", "settings", "stats", "gban", "ungban", "gbanlist", "refresh", "ownerhelp", "activevc", "broadcast", "send"]))

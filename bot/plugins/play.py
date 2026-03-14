@@ -24,7 +24,9 @@ from bot.logger import log_error
 @log_cmd
 async def play_command(client: Client, message: Message):
     if message.from_user and db.is_gbanned(message.from_user.id):
-        return await message.reply("🚫 You are globally banned from using this bot.")
+        msg = await message.reply("🚫 You are globally banned from using this bot.")
+        asyncio.create_task(delete_later(msg))
+        return
     
     is_video = "v" in message.command[0].lower()
     query = " ".join(message.command[1:]).strip() if len(message.command) > 1 else ""
@@ -52,8 +54,8 @@ async def play_command(client: Client, message: Message):
             requested_name=message.from_user.mention if message.from_user else "Unknown",
         )
     elif not query:
-        err_msg = await message.reply("❓ Please provide a song name or YouTube URL.\nExample: `/play Shape of You`")
-        asyncio.create_task(delete_later(err_msg))
+        msg = await message.reply("❓ Please provide a song name or YouTube URL.\nExample: `/play Shape of You`")
+        asyncio.create_task(delete_later(msg))
         return
     else:
         status_msg = await message.reply("🔍 Searching..." if not is_video else "🔍 Searching and preparing video...")
@@ -79,7 +81,7 @@ async def play_command(client: Client, message: Message):
             f"✅ Added to queue at position **#{pos}**\n🎵 **{audio_info.title}**"
         )
         asyncio.create_task(delete_later(status_msg))
-        # Update existing control message with new queue count
+        # Update the existing NP message to show new queue count
         if queue.now_playing_msg_id and queue.current_track:
             await update_now_playing(client, message.chat.id, queue.now_playing_msg_id, queue.current_track, queue)
         return
@@ -118,15 +120,8 @@ async def play_command(client: Client, message: Message):
                 text=np_text,
                 reply_markup=buttons,
             )
-        if queue.now_playing_msg_id:
-            try:
-                old_msg = await client.get_messages(message.chat.id, queue.now_playing_msg_id)
-                if old_msg:
-                    await old_msg.delete()
-            except Exception:
-                pass
         queue.now_playing_msg_id = np_msg.id
-        asyncio.create_task(delete_later(status_msg, delay=0))
+        await status_msg.delete()
     except Exception as e:
         await log_error(e, context="play_command:send_np", chat_id=message.chat.id)
     

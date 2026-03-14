@@ -26,7 +26,7 @@ async def ping_cmd(client: Client, message: Message):
     msg = await message.reply("🏓 Pong!")
     elapsed = (time.monotonic() - start) * 1000
     await msg.edit(f"🏓 **Pong!**\n📶 Latency: `{elapsed:.1f}ms`")
-    asyncio.create_task(delete_later(msg))
+    asyncio.create_task(delete_later(msg, delay=10))
 
 
 @Client.on_message(filters.command("stats") & (filters.group | filters.private), group=1)
@@ -80,14 +80,6 @@ async def np_cmd(client: Client, message: Message):
         return
     text = build_now_playing_text(track, queue)
     buttons = build_control_buttons(queue.loop_mode)
-    np_msg = await message.reply(text, reply_markup=buttons)
-
-    # Delete the old now playing message to keep chat clean
-    if queue.now_playing_msg_id:
-        try:
-            old_msg = await client.get_messages(message.chat.id, queue.now_playing_msg_id)
-            if old_msg:
-                await old_msg.delete()
-        except Exception:
-            pass
-    queue.now_playing_msg_id = np_msg.id
+    msg = await message.reply(text, reply_markup=buttons)
+    # Register the newly sent NP message as the active one
+    queue.now_playing_msg_id = msg.id
