@@ -118,21 +118,27 @@ async def download_audio(query: str, requested_by: int = 0, requested_name: str 
         
         # Robust stream URL extraction
         stream_url = None
-        # Use the most reliable streamable URL found by yt-dlp
-        # Combined formats (audio+video) are much more stable for direct streaming than adaptive DASH fragments.
-        # PyTgCalls will automatically ignore the video track if we don't provide video_parameters in start_stream.
-        stream_url = info.get("url")
+        formats = info.get("formats", [])
 
-        if not stream_url:
-            # Fallback to searching formats if 'url' is missing
-            formats = info.get("formats", [])
-            # Prefer combined formats with height <= 480
-            combined = [f for f in formats if f.get("vcodec") != "none" and f.get("acodec") != "none"]
+        if is_video:
+            # Video Extraction: Look for combined formats (audio+video) <= 480p for stability
+            combined = [f for f in formats if f.get("vcodec") != "none" and f.get("acodec") != "none" and f.get("height", 0) <= 480]
             if combined:
                 best_combined = sorted(combined, key=lambda x: x.get("height", 0) or 0, reverse=True)[0]
                 stream_url = best_combined.get("url")
-            elif formats:
-                stream_url = formats[-1].get("url")
+            else:
+                # Fallback to general best format if strictly 480p combined isn't found
+                stream_url = info.get("url")
+        else:
+            # Strictly Audio: Look for the best audio-only format (vcodec='none')
+            audio_only = [f for f in formats if f.get("vcodec") == "none" and f.get("acodec") != "none"]
+            if audio_only:
+                # Sort by bitrate (abr) and prefer standard extensions for better FFmpeg compatibility
+                best_audio = sorted(audio_only, key=lambda f: (f.get("abr", 0) or 0), reverse=True)[0]
+                stream_url = best_audio.get("url")
+            else:
+                # Fallback if no audio-only format is listed separately
+                stream_url = info.get("url")
         
         # Guard: if it's video but we didn't find a stream yet (unlikely)
         if is_video and not stream_url:

@@ -52,11 +52,10 @@ def _make_stream(audio: AudioInfo, seek_secs: int = 0) -> MediaStream:
             ffmpeg_parameters=extra_ffmpeg or None,
         )
     else:
-        ffmpeg_args = f"{extra_ffmpeg} -vn".strip()
         return MediaStream(
             stream_path,
             audio_parameters=AudioQuality.HIGH,
-            ffmpeg_parameters=ffmpeg_args or None,
+            ffmpeg_parameters=extra_ffmpeg or None,
         )
 
 
