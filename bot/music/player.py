@@ -42,8 +42,6 @@ def _make_stream(audio: AudioInfo, seek_secs: int = 0) -> MediaStream:
         raise ValueError(f"No streamable path found for '{audio.title}'")
 
     extra_ffmpeg = f"-ss {seek_secs}" if seek_secs > 0 else ""
-    reconnect_params = "-reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 5"
-    ffmpeg_opts = f"{reconnect_params} {extra_ffmpeg}".strip()
     
     LOGGER.info("Creating MediaStream for %s (video=%s)", audio.title, audio.is_video)
     if audio.is_video:
@@ -51,13 +49,13 @@ def _make_stream(audio: AudioInfo, seek_secs: int = 0) -> MediaStream:
             stream_path,
             audio_parameters=AudioQuality.HIGH,
             video_parameters=VideoQuality.SD_480p,
-            ffmpeg_parameters=ffmpeg_opts or None,
+            ffmpeg_parameters=extra_ffmpeg or None,
         )
     else:
         return MediaStream(
             stream_path,
             audio_parameters=AudioQuality.HIGH,
-            ffmpeg_parameters=ffmpeg_opts or None,
+            ffmpeg_parameters=extra_ffmpeg or None,
         )
 
 

@@ -118,32 +118,21 @@ async def download_audio(query: str, requested_by: int = 0, requested_name: str 
         
         # Robust stream URL extraction
         stream_url = None
-        video_stream_url = None
-        formats = info.get("formats", [])
-        
-        # Audio Extraction - Prefer pre-merged formats if possible or best audio
-        # Avoid direct URLs that might be DASH fragments if possible
-        audio_formats = [f for f in formats if f.get("vcodec") == "none" and f.get("acodec") != "none"]
-        if audio_formats:
-            # Prefer opus/m4a
-            best_audio = sorted(audio_formats, key=lambda f: (f.get("abr", 0) or 0, f.get("tbr", 0) or 0), reverse=True)[0]
-            stream_url = best_audio.get("url")
-        
-        # If no audio-only format, use best combined but it'll be larger
-        if not stream_url:
-            stream_url = info.get("url")
+        # Use the most reliable streamable URL found by yt-dlp
+        # Combined formats (audio+video) are much more stable for direct streaming than adaptive DASH fragments.
+        # PyTgCalls will automatically ignore the video track if we don't provide video_parameters in start_stream.
+        stream_url = info.get("url")
 
-        # Video Extraction (if requested)
-        if is_video:
-            # Look for 480p combined or best available <= 480
-            combined = [f for f in formats if f.get("vcodec") != "none" and f.get("acodec") != "none" and f.get("height", 0) <= 480]
+        if not stream_url:
+            # Fallback to searching formats if 'url' is missing
+            formats = info.get("formats", [])
+            # Prefer combined formats with height <= 480
+            combined = [f for f in formats if f.get("vcodec") != "none" and f.get("acodec") != "none"]
             if combined:
                 best_combined = sorted(combined, key=lambda x: x.get("height", 0) or 0, reverse=True)[0]
                 stream_url = best_combined.get("url")
-                LOGGER.info("Selected combined video format: %sp", best_combined.get("height"))
-            else:
-                # Fallback to info url
-                stream_url = info.get("url")
+            elif formats:
+                stream_url = formats[-1].get("url")
         
         # Guard: if it's video but we didn't find a stream yet (unlikely)
         if is_video and not stream_url:

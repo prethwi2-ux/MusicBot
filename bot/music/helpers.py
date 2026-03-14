@@ -51,10 +51,8 @@ def build_now_playing_text(audio: AudioInfo, queue: MusicQueue) -> str:
     req_text = ""
     if audio.requested_name:
         req_text = f"├ Requested by : {audio.requested_name}\n"
-    
-    icon = "🎥" if audio.is_video else "🎵"
     text = (
-        f"{icon} **Now Playing**\n\n"
+        "🎵 **Now Playing**\n\n"
         f"**{audio.title}**\n\n"
         f"╔ Duration   : `{format_duration(audio.duration)}`\n"
         f"{req_text}"
