@@ -12,7 +12,7 @@ from bot import call
 from bot.music.downloader import download_audio
 from bot.music.player import start_stream
 from bot.music.queue import get_queue
-from bot.music.helpers import build_now_playing_text, build_control_buttons
+from bot.music.helpers import build_now_playing_text, build_control_buttons, delete_later, update_now_playing
 from bot.database.settings_db import db
 from bot.utils.decorators import anti_spam, log_cmd, fast_cmd
 from bot.logger import log_error
@@ -52,7 +52,8 @@ async def play_command(client: Client, message: Message):
             requested_name=message.from_user.mention if message.from_user else "Unknown",
         )
     elif not query:
-        await message.reply("❓ Please provide a song name or YouTube URL.\nExample: `/play Shape of You`")
+        err_msg = await message.reply("❓ Please provide a song name or YouTube URL.\nExample: `/play Shape of You`")
+        asyncio.create_task(delete_later(err_msg))
         return
     else:
         status_msg = await message.reply("🔍 Searching..." if not is_video else "🔍 Searching and preparing video...")
@@ -65,6 +66,7 @@ async def play_command(client: Client, message: Message):
 
     if not audio_info:
         await status_msg.edit("❌ Could not find or download the song. Try another query.")
+        asyncio.create_task(delete_later(status_msg))
         return
 
     # ── Add to queue ─────────────────────────────────────────────────────────────
@@ -76,6 +78,10 @@ async def play_command(client: Client, message: Message):
         await status_msg.edit(
             f"✅ Added to queue at position **#{pos}**\n🎵 **{audio_info.title}**"
         )
+        asyncio.create_task(delete_later(status_msg))
+        # Update existing control message with new queue count
+        if queue.now_playing_msg_id and queue.current_track:
+            await update_now_playing(client, message.chat.id, queue.now_playing_msg_id, queue.current_track, queue)
         return
 
     # ── Start streaming ──────────────────────────────────────────────────────────
@@ -88,6 +94,7 @@ async def play_command(client: Client, message: Message):
         if is_video:
             error_text = "❌ Failed to start video stream. This video might be protected or incompatible."
         await status_msg.edit(error_text)
+        asyncio.create_task(delete_later(status_msg))
         return
 
     # ── Now Playing card ─────────────────────────────────────────────────────────
@@ -111,8 +118,15 @@ async def play_command(client: Client, message: Message):
                 text=np_text,
                 reply_markup=buttons,
             )
+        if queue.now_playing_msg_id:
+            try:
+                old_msg = await client.get_messages(message.chat.id, queue.now_playing_msg_id)
+                if old_msg:
+                    await old_msg.delete()
+            except Exception:
+                pass
         queue.now_playing_msg_id = np_msg.id
-        await status_msg.delete()
+        asyncio.create_task(delete_later(status_msg, delay=0))
     except Exception as e:
         await log_error(e, context="play_command:send_np", chat_id=message.chat.id)
     

@@ -9,7 +9,7 @@ from pyrogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineK
 from bot import config, call, assistant
 from bot.music.player import pause_stream, resume_stream, stop_stream, skip_stream, set_volume
 from bot.music.queue import get_queue, active_queues
-from bot.music.helpers import build_now_playing_text, build_control_buttons
+from bot.music.helpers import build_now_playing_text, build_control_buttons, update_now_playing
 from bot.utils.admin_check import is_admin
 from bot.logger import LOGGER, log_error
 from bot.database.settings_db import db
@@ -63,9 +63,7 @@ async def music_callback(client: Client, query: CallbackQuery):
             LOGGER.info("Action: Skipping track in %s", chat_id)
             next_track = await skip_stream(call, chat_id)
             if next_track:
-                text = build_now_playing_text(next_track, queue)
-                buttons = build_control_buttons(queue.loop_mode)
-                await query.message.edit_text(text, reply_markup=buttons)
+                await update_now_playing(client, chat_id, query.message.id, next_track, queue)
                 await query.answer("⏭ Skipped")
             else:
                 await query.answer("✅ Queue ended.")
@@ -87,9 +85,7 @@ async def music_callback(client: Client, query: CallbackQuery):
             LOGGER.info("Action: Cycling loop mode in %s", chat_id)
             new_mode = queue.cycle_loop()
             if queue.current_track:
-                text = build_now_playing_text(queue.current_track, queue)
-                buttons = build_control_buttons(new_mode)
-                await query.message.edit_reply_markup(reply_markup=buttons)
+                await update_now_playing(client, chat_id, query.message.id, queue.current_track, queue)
             await query.answer(f"🔁 Loop: {new_mode.value.upper()}")
 
         elif action == "ctrl_vol_down":

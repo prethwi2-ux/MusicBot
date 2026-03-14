@@ -2,9 +2,56 @@
 bot/music/helpers.py
 UI string builders: progress bar, now-playing card, control buttons.
 """
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+import asyncio
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
+from pyrogram.errors import MessageIdInvalid, MessageNotModified
 from bot.music.queue import MusicQueue, LoopMode
 from bot.music.downloader import AudioInfo
+from bot.logger import LOGGER
+
+# ── Helpers for Auto-Delete & NP Updates ─────────────────────────────────────────
+
+async def delete_later(message: Message, delay: int = 5):
+    """Wait for `delay` seconds, then delete the message."""
+    if not message:
+        return
+    await asyncio.sleep(delay)
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
+async def update_now_playing(app, chat_id: int, message_id: int, audio: AudioInfo, queue: MusicQueue):
+    """Robustly update the Now Playing message (text or photo)."""
+    if not message_id:
+        return
+
+    text = build_now_playing_text(audio, queue)
+    buttons = build_control_buttons(queue.loop_mode)
+
+    try:
+        # Try to edit it as a text message first (if it had no thumbnail)
+        await app.edit_message_text(
+            chat_id=chat_id,
+            message_id=message_id,
+            text=text,
+            reply_markup=buttons
+        )
+    except MessageNotModified:
+        pass
+    except Exception:
+        # If it's a photo, edit_message_text will fail. Fallback to editing the caption.
+        try:
+            await app.edit_message_caption(
+                chat_id=chat_id,
+                message_id=message_id,
+                caption=text,
+                reply_markup=buttons
+            )
+        except MessageNotModified:
+            pass
+        except Exception as e:
+            LOGGER.error("Failed to update NP message in %s: %s", chat_id, e)
 
 
 # ── Time formatting ──────────────────────────────────────────────────────────────

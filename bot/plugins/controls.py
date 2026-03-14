@@ -6,9 +6,10 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 
 from bot import call
+import asyncio
 from bot.music.player import pause_stream, resume_stream, stop_stream, skip_stream
 from bot.music.queue import get_queue
-from bot.music.helpers import build_now_playing_text, build_control_buttons
+from bot.music.helpers import build_now_playing_text, build_control_buttons, delete_later
 from bot.utils.decorators import admin_only, anti_spam, log_cmd, fast_cmd
 
 
@@ -20,10 +21,12 @@ from bot.utils.decorators import admin_only, anti_spam, log_cmd, fast_cmd
 async def pause_cmd(client: Client, message: Message):
     queue = get_queue(message.chat.id)
     if not queue.is_playing or queue.is_paused:
-        await message.reply("▶️ Nothing is playing or already paused.")
+        msg = await message.reply("▶️ Nothing is playing or already paused.")
+        asyncio.create_task(delete_later(msg))
         return
     ok = await pause_stream(call, message.chat.id)
-    await message.reply("⏸ Paused." if ok else "❌ Could not pause.")
+    msg = await message.reply("⏸ Paused." if ok else "❌ Could not pause.")
+    asyncio.create_task(delete_later(msg))
 
 
 @Client.on_message(filters.command("resume") & filters.group, group=1)
@@ -34,10 +37,12 @@ async def pause_cmd(client: Client, message: Message):
 async def resume_cmd(client: Client, message: Message):
     queue = get_queue(message.chat.id)
     if not queue.is_paused:
-        await message.reply("⏸ Not paused.")
+        msg = await message.reply("⏸ Not paused.")
+        asyncio.create_task(delete_later(msg))
         return
     ok = await resume_stream(call, message.chat.id)
-    await message.reply("▶️ Resumed." if ok else "❌ Could not resume.")
+    msg = await message.reply("▶️ Resumed." if ok else "❌ Could not resume.")
+    asyncio.create_task(delete_later(msg))
 
 
 @Client.on_message(filters.command("stop") & filters.group, group=1)
@@ -47,7 +52,8 @@ async def resume_cmd(client: Client, message: Message):
 @log_cmd
 async def stop_cmd(client: Client, message: Message):
     await stop_stream(call, message.chat.id)
-    await message.reply("⏹ Stopped and cleared the queue.")
+    msg = await message.reply("⏹ Stopped and cleared the queue.")
+    asyncio.create_task(delete_later(msg))
 
 
 @Client.on_message(filters.command("skip") & filters.group, group=1)
@@ -58,7 +64,8 @@ async def stop_cmd(client: Client, message: Message):
 async def skip_cmd(client: Client, message: Message):
     queue = get_queue(message.chat.id)
     if not queue.is_playing:
-        await message.reply("❌ Nothing is playing.")
+        msg = await message.reply("❌ Nothing is playing.")
+        asyncio.create_task(delete_later(msg))
         return
     next_track = await skip_stream(call, message.chat.id)
     if next_track:
@@ -74,8 +81,11 @@ async def skip_cmd(client: Client, message: Message):
                     reply_markup=buttons,
                 )
             except Exception:
-                await message.reply(np_text, reply_markup=buttons)
+                np_msg = await message.reply(np_text, reply_markup=buttons)
+                queue.now_playing_msg_id = np_msg.id
         else:
-            await message.reply(np_text, reply_markup=buttons)
+            np_msg = await message.reply(np_text, reply_markup=buttons)
+            queue.now_playing_msg_id = np_msg.id
     else:
-        await message.reply("✅ Queue ended. Leaving voice chat.")
+        msg = await message.reply("✅ Queue ended. Leaving voice chat.")
+        asyncio.create_task(delete_later(msg))

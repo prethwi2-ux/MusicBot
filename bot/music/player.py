@@ -208,16 +208,8 @@ def register_callbacks(call: PyTgCalls, app) -> None:
         if next_track:
             ok = await start_stream(call, chat_id, next_track)
             if ok and queue.now_playing_msg_id:
-                from bot.music.helpers import build_now_playing_text, build_control_buttons
-                try:
-                    await app.edit_message_text(
-                        chat_id=chat_id,
-                        message_id=queue.now_playing_msg_id,
-                        text=build_now_playing_text(next_track, queue),
-                        reply_markup=build_control_buttons(queue.loop_mode),
-                    )
-                except Exception:
-                    pass
+                from bot.music.helpers import update_now_playing
+                await update_now_playing(app, chat_id, queue.now_playing_msg_id, next_track, queue)
         else:
             await log_event("Queue ended", f"Chat: `{chat_id}`")
             try:

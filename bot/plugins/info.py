@@ -10,7 +10,7 @@ from pyrogram.types import Message
 
 from bot import config
 from bot.music.queue import get_queue, active_queues
-from bot.music.helpers import build_now_playing_text, build_control_buttons, format_duration
+from bot.music.helpers import build_now_playing_text, build_control_buttons, format_duration, delete_later
 from bot.database.cache import audio_cache
 from bot.utils.decorators import anti_spam, log_cmd, fast_cmd
 
@@ -26,6 +26,7 @@ async def ping_cmd(client: Client, message: Message):
     msg = await message.reply("🏓 Pong!")
     elapsed = (time.monotonic() - start) * 1000
     await msg.edit(f"🏓 **Pong!**\n📶 Latency: `{elapsed:.1f}ms`")
+    asyncio.create_task(delete_later(msg))
 
 
 @Client.on_message(filters.command("stats") & (filters.group | filters.private), group=1)
@@ -62,7 +63,8 @@ async def stats_cmd(client: Client, message: Message):
             f"└ Globally Banned: `{len(db._data['gbanned'])}`"
         )
 
-    await message.reply(text)
+    msg = await message.reply(text)
+    asyncio.create_task(delete_later(msg, delay=15))
 
 
 @Client.on_message(filters.command(["np", "now", "nowplaying"]) & filters.group, group=1)
@@ -73,8 +75,19 @@ async def np_cmd(client: Client, message: Message):
     queue = get_queue(message.chat.id)
     track = queue.current_track
     if not track:
-        await message.reply("❌ Nothing is currently playing.")
+        msg = await message.reply("❌ Nothing is currently playing.")
+        asyncio.create_task(delete_later(msg))
         return
     text = build_now_playing_text(track, queue)
     buttons = build_control_buttons(queue.loop_mode)
-    await message.reply(text, reply_markup=buttons)
+    np_msg = await message.reply(text, reply_markup=buttons)
+
+    # Delete the old now playing message to keep chat clean
+    if queue.now_playing_msg_id:
+        try:
+            old_msg = await client.get_messages(message.chat.id, queue.now_playing_msg_id)
+            if old_msg:
+                await old_msg.delete()
+        except Exception:
+            pass
+    queue.now_playing_msg_id = np_msg.id
