@@ -46,6 +46,19 @@ AUTO_LEAVE_DELAY: int = _get_int("AUTO_LEAVE_DELAY", 300)
 MAX_QUEUE_SIZE: int = _get_int("MAX_QUEUE_SIZE", 100)
 DOWNLOAD_DIR: str = os.environ.get("DOWNLOAD_DIR", "./downloads")
 COOKIES_FILE: str = os.environ.get("COOKIES_FILE", "")
+COOKIES_DATA: str = os.environ.get("COOKIES_DATA", "")
+
+# If COOKIES_DATA payload is provided (e.g. from Railway config), save it to a file
+if COOKIES_DATA:
+    _root_cookies = _PROJECT_ROOT / "cookies.txt"
+    try:
+        # Some env vars might have literal \n that need to be parsed
+        parsed_data = COOKIES_DATA.replace("\\n", "\n")
+        with open(_root_cookies, "w", encoding="utf-8") as f:
+            f.write(parsed_data)
+        COOKIES_FILE = str(_root_cookies)
+    except Exception as e:
+        print(f"Failed to write COOKIES_DATA to cookies.txt: {e}")
 
 # If COOKIES_FILE is not set in env, check if cookies.txt exists in root
 if not COOKIES_FILE:
