@@ -46,17 +46,8 @@ def _ydl_opts() -> dict:
         "noplaylist": True,
         "skip_download": True,
         "force_generic_extractor": False,
-        "nocheckcertificate": True,
-        "username": "oauth2",
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["web_embedded", "ios", "android"],
-                "player_skip_bundle_checks": True
-            }
-        }
+        "extractor_args": {"youtube": {"player_client": ["android", "web"]}}
     }
-    if config.YOUTUBE_PROXY:
-        opts["proxy"] = config.YOUTUBE_PROXY
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
         opts["cookiefile"] = config.COOKIES_FILE
     return opts
@@ -70,17 +61,8 @@ def _search_opts() -> dict:
         "noplaylist": True,
         "extract_flat": "in_playlist",
         "skip_download": True,
-        "nocheckcertificate": True,
-        "username": "oauth2",
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["web_embedded", "ios", "android"],
-                "player_skip_bundle_checks": True
-            }
-        }
+        "extractor_args": {"youtube": {"player_client": ["android", "web"]}}
     }
-    if config.YOUTUBE_PROXY:
-        opts["proxy"] = config.YOUTUBE_PROXY
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
         opts["cookiefile"] = config.COOKIES_FILE
     return opts
@@ -335,7 +317,7 @@ def search_youtube_results_ydl(query: str, limit: int = 5) -> list[dict]:
     search_query = f"ytsearch{limit}:{query}"
     results = []
     try:
-        opts = {**_search_opts(), "extract_flat": True, "nocheckcertificate": True}
+        opts = {**_search_opts(), "extract_flat": True}
         if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
             opts["cookiefile"] = config.COOKIES_FILE
         with yt_dlp.YoutubeDL(opts) as ydl:
@@ -361,17 +343,8 @@ def _fetch_info(url: str) -> Optional[dict]:
         "no_warnings": True, 
         "skip_download": True, 
         "noplaylist": True,
-        "nocheckcertificate": True,
-        "username": "oauth2",
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["web_embedded", "ios", "android"],
-                "player_skip_bundle_checks": True
-            }
-        }
+        "extractor_args": {"youtube": {"player_client": ["android", "web"]}}
     }
-    if config.YOUTUBE_PROXY:
-        opts["proxy"] = config.YOUTUBE_PROXY
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
         opts["cookiefile"] = config.COOKIES_FILE
 

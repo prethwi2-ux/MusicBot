@@ -55,7 +55,6 @@ def _make_stream(audio: AudioInfo, seek_secs: int = 0) -> MediaStream:
         return MediaStream(
             stream_path,
             audio_parameters=AudioQuality.HIGH,
-            video_flags=MediaStream.Flags.IGNORE,
             ffmpeg_parameters=extra_ffmpeg or None,
         )
 

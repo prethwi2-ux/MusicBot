@@ -45,30 +45,11 @@ async def startup():
     LOGGER.info("Starting MusicBot…")
 
     # Start assistant (userbot) first
-    try:
-        await assistant.start()
-        LOGGER.info("Assistant client connected.")
-    except Exception as e:
-        if "flood" in str(e).lower():
-            import re
-            wait_time = int(re.search(r"(\d+)", str(e)).group(1)) if re.search(r"(\d+)", str(e)) else 60
-            LOGGER.warning(f"Assistant FloodWait: Waiting {wait_time} seconds...")
-            await asyncio.sleep(wait_time + 5)
-            await assistant.start()
-        else: raise e
+    await assistant.start()
+    LOGGER.info("Assistant client connected.")
 
     # Start bot client
-    try:
-        await app.start()
-    except Exception as e:
-        if "flood" in str(e).lower():
-            import re
-            wait_time = int(re.search(r"(\d+)", str(e)).group(1)) if re.search(r"(\d+)", str(e)) else 60
-            LOGGER.warning(f"Bot FloodWait: Waiting {wait_time} seconds...")
-            await asyncio.sleep(wait_time + 5)
-            await app.start()
-        else: raise e
-
+    await app.start()
     me = await app.get_me()
     LOGGER.info("Bot connected as @%s (id=%s)", me.username, me.id)
 

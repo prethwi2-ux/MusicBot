@@ -6,7 +6,7 @@ pyrotgcrypto
 py-tgcalls>=2.2.0
 
 # YouTube Downloader
-yt-dlp>=2026.3.13
+yt-dlp>=2024.1.1
 
 # Async utilities
 aiofiles>=23.2.1
