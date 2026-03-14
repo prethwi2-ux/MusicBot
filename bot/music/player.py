@@ -41,6 +41,7 @@ def _make_stream(audio: AudioInfo, seek_secs: int = 0) -> MediaStream:
     if not stream_path:
         raise ValueError(f"No streamable path found for '{audio.title}'")
 
+    extra_ffmpeg = f"-ss {seek_secs}" if seek_secs > 0 else ""
     reconnect_params = "-reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 5"
     ffmpeg_opts = f"{reconnect_params} {extra_ffmpeg}".strip()
     
