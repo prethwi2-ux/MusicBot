@@ -18,17 +18,29 @@ from bot.utils.decorators import anti_spam, log_cmd, fast_cmd
 from bot.logger import log_error
 
 
-@Client.on_message(filters.command(["play", "p", "vplay", "vp"]) & filters.group, group=1)
+@Client.on_message(filters.command(["play", "p"]) & filters.group, group=1)
 @fast_cmd
 @anti_spam
 @log_cmd
 async def play_command(client: Client, message: Message):
+    await _handle_play(client, message, is_video=False)
+
+
+@Client.on_message(filters.command(["vplay", "vp"]) & filters.group, group=1)
+@fast_cmd
+@anti_spam
+@log_cmd
+async def vplay_command(client: Client, message: Message):
+    await _handle_play(client, message, is_video=True)
+
+
+async def _handle_play(client: Client, message: Message, is_video: bool):
     if message.from_user and db.is_gbanned(message.from_user.id):
         msg = await message.reply("🚫 You are globally banned from using this bot.")
         asyncio.create_task(delete_later(msg))
         return
     
-    is_video = "v" in message.command[0].lower()
+    # Removed is_video detection from command name since it's passed as arg
     query = " ".join(message.command[1:]).strip() if len(message.command) > 1 else ""
     queue = get_queue(message.chat.id)
 
@@ -104,7 +116,8 @@ async def play_command(client: Client, message: Message):
     buttons = build_control_buttons(queue.loop_mode)
 
     try:
-        if audio_info.thumb_path and os.path.exists(audio_info.thumb_path):
+        # For /play (audio only), we don't send the photo to keep chat clean and clarify it's audio.
+        if is_video and audio_info.thumb_path and os.path.exists(audio_info.thumb_path):
             np_msg = await client.send_photo(
                 chat_id=message.chat.id,
                 photo=audio_info.thumb_path,

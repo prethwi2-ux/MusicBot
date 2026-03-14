@@ -46,7 +46,8 @@ def _ydl_opts() -> dict:
         "noplaylist": True,
         "skip_download": True,
         "force_generic_extractor": False,
-        "extractor_args": {"youtube": {"player_client": ["android", "web"]}}
+        "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
+        "nocheckcertificate": True,
     }
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
         opts["cookiefile"] = config.COOKIES_FILE
@@ -120,45 +121,29 @@ async def download_audio(query: str, requested_by: int = 0, requested_name: str 
         video_stream_url = None
         formats = info.get("formats", [])
         
-        # Audio Extraction
+        # Audio Extraction - Prefer pre-merged formats if possible or best audio
+        # Avoid direct URLs that might be DASH fragments if possible
         audio_formats = [f for f in formats if f.get("vcodec") == "none" and f.get("acodec") != "none"]
         if audio_formats:
-            best_audio = sorted(audio_formats, key=lambda f: f.get("abr", 0) or 0, reverse=True)[0]
+            # Prefer opus/m4a
+            best_audio = sorted(audio_formats, key=lambda f: (f.get("abr", 0) or 0, f.get("tbr", 0) or 0), reverse=True)[0]
             stream_url = best_audio.get("url")
         
+        # If no audio-only format, use best combined but it'll be larger
         if not stream_url:
             stream_url = info.get("url")
 
         # Video Extraction (if requested)
         if is_video:
-            # Prefer 480p combined formats if they exist (rare), otherwise look for height <= 480 combined
-            itag_map = {f.get("format_id"): f for f in formats if f.get("format_id")}
-            
-            # Prioritize 480p (Legacy/Specific) then 360p (Standard Combined)
-            target_itag = None
-            # itag 35 is 480p (H.264/AAC), itag 18 is 360p
-            if "35" in itag_map:
-                target_itag = itag_map["35"]
-            elif "18" in itag_map:
-                target_itag = itag_map["18"]
-            
-            if target_itag:
-                stream_url = target_itag.get("url")
-                LOGGER.info("Selected combined itag %s for video streaming (480p target).", target_itag.get("format_id"))
+            # Look for 480p combined or best available <= 480
+            combined = [f for f in formats if f.get("vcodec") != "none" and f.get("acodec") != "none" and f.get("height", 0) <= 480]
+            if combined:
+                best_combined = sorted(combined, key=lambda x: x.get("height", 0) or 0, reverse=True)[0]
+                stream_url = best_combined.get("url")
+                LOGGER.info("Selected combined video format: %sp", best_combined.get("height"))
             else:
-                # Fallback: Find any combined format with height <= 480
-                combined = [f for f in formats if f.get("vcodec") != "none" and f.get("acodec") != "none" and f.get("height", 0) <= 480]
-                if combined:
-                    best_combined = sorted(combined, key=lambda x: x.get("height", 0) or 0, reverse=True)[0]
-                    stream_url = best_combined.get("url")
-                    LOGGER.info("Selected combined format: %sp", best_combined.get("height"))
-                else:
-                    # Last resort: Just best video <= 480 (might be silent)
-                    video_only = [f for f in formats if f.get("vcodec") != "none" and f.get("height", 0) <= 480]
-                    if video_only:
-                        best_v = sorted(video_only, key=lambda x: x.get("height", 0) or 0, reverse=True)[0]
-                        stream_url = best_v.get("url")
-                        LOGGER.info("Selected video-only format: %sp (Caution: No Audio)", best_v.get("height"))
+                # Fallback to info url
+                stream_url = info.get("url")
         
         # Guard: if it's video but we didn't find a stream yet (unlikely)
         if is_video and not stream_url:
