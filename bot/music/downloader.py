@@ -47,8 +47,16 @@ def _ydl_opts() -> dict:
         "skip_download": True,
         "force_generic_extractor": False,
         "nocheckcertificate": True,
-        "extractor_args": {"youtube": {"player_client": ["android_testsuite", "web_creator", "ios"]}}
+        "username": "oauth2",
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["web_embedded", "ios", "android"],
+                "player_skip_bundle_checks": True
+            }
+        }
     }
+    if config.YOUTUBE_PROXY:
+        opts["proxy"] = config.YOUTUBE_PROXY
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
         opts["cookiefile"] = config.COOKIES_FILE
     return opts
@@ -63,8 +71,16 @@ def _search_opts() -> dict:
         "extract_flat": "in_playlist",
         "skip_download": True,
         "nocheckcertificate": True,
-        "extractor_args": {"youtube": {"player_client": ["android_testsuite", "web_creator", "ios"]}}
+        "username": "oauth2",
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["web_embedded", "ios", "android"],
+                "player_skip_bundle_checks": True
+            }
+        }
     }
+    if config.YOUTUBE_PROXY:
+        opts["proxy"] = config.YOUTUBE_PROXY
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
         opts["cookiefile"] = config.COOKIES_FILE
     return opts
@@ -346,8 +362,16 @@ def _fetch_info(url: str) -> Optional[dict]:
         "skip_download": True, 
         "noplaylist": True,
         "nocheckcertificate": True,
-        "extractor_args": {"youtube": {"player_client": ["android_testsuite", "web_creator", "ios"]}}
+        "username": "oauth2",
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["web_embedded", "ios", "android"],
+                "player_skip_bundle_checks": True
+            }
+        }
     }
+    if config.YOUTUBE_PROXY:
+        opts["proxy"] = config.YOUTUBE_PROXY
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
         opts["cookiefile"] = config.COOKIES_FILE
 
