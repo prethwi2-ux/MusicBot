@@ -134,7 +134,7 @@ async def update_now_playing(app: Client, chat_id: int, message_id: int, audio_i
     buttons = build_control_buttons(queue.loop_mode)
     
     try:
-        # First try as text
+        # Try to edit text
         await app.edit_message_text(
             chat_id=chat_id,
             message_id=message_id,
@@ -143,20 +143,37 @@ async def update_now_playing(app: Client, chat_id: int, message_id: int, audio_i
         )
         return True
     except Exception as e:
-        if "MESSAGE_NOT_MODIFIED" in str(e):
+        err = str(e)
+        if "MESSAGE_NOT_MODIFIED" in err:
             return True
-        # Fallback to caption if it was a photo
-        try:
-            await app.edit_message_caption(
-                chat_id=chat_id,
-                message_id=message_id,
-                caption=text,
-                reply_markup=buttons
-            )
-            return True
-        except Exception as e2:
-            if "MESSAGE_NOT_MODIFIED" in str(e2):
+        
+        # If it's a photo message, edit caption
+        if "MESSAGE_ID_INVALID" not in err:
+            try:
+                await app.edit_message_caption(
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    caption=text,
+                    reply_markup=buttons
+                )
                 return True
-            from bot.logger import LOGGER
-            LOGGER.error("update_now_playing failed for chat %s msg %s: %s", chat_id, message_id, e2)
+            except Exception as e2:
+                if "MESSAGE_NOT_MODIFIED" in str(e2):
+                    return True
+        
+        # If both fail (e.g. switching from photo to text or vice versa), 
+        # delete and send fresh to respect the is_video UI preference.
+        try:
+            await app.delete_messages(chat_id, message_id)
+        except: pass
+        
+        try:
+            # Re-check is_video for UI type
+            if audio_info.is_video and audio_info.thumb_path and os.path.exists(audio_info.thumb_path):
+                new_msg = await app.send_photo(chat_id, audio_info.thumb_path, caption=text, reply_markup=buttons)
+            else:
+                new_msg = await app.send_message(chat_id, text, reply_markup=buttons)
+            queue.now_playing_msg_id = new_msg.id
+            return True
+        except:
             return False
