@@ -109,29 +109,20 @@ async def download_audio(query: str, requested_by: int = 0, requested_name: str 
 
     # Step 3 – Fetch Metadata & Stream URL
     try:
-        info = await loop.run_in_executor(None, _fetch_info, url)
+        info = await loop.run_in_executor(None, _fetch_info, url, is_video)
         if not info:
             return None
 
         title = info.get("title", "Unknown")
         duration = info.get("duration", 0)
         
-        # Robust stream URL extraction
-        stream_url = None
-        # Use the most reliable streamable URL found by yt-dlp
-        # Combined formats (audio+video) are much more stable for direct streaming than adaptive DASH fragments.
-        # PyTgCalls will automatically ignore the video track if we don't provide video_parameters in start_stream.
+        # Use the URL selected by yt-dlp based on the format requested in _fetch_info
         stream_url = info.get("url")
 
         if not stream_url:
-            # Fallback to searching formats if 'url' is missing
+            # Fallback to searching formats
             formats = info.get("formats", [])
-            # Prefer combined formats with height <= 480
-            combined = [f for f in formats if f.get("vcodec") != "none" and f.get("acodec") != "none"]
-            if combined:
-                best_combined = sorted(combined, key=lambda x: x.get("height", 0) or 0, reverse=True)[0]
-                stream_url = best_combined.get("url")
-            elif formats:
+            if formats:
                 stream_url = formats[-1].get("url")
         
         # Guard: if it's video but we didn't find a stream yet (unlikely)
@@ -310,14 +301,15 @@ def search_youtube_results_ydl(query: str, limit: int = 5) -> list[dict]:
     return results
 
 
-def _fetch_info(url: str) -> Optional[dict]:
+def _fetch_info(url: str, is_video: bool = False) -> Optional[dict]:
     """Fetch video metadata without downloading - blocking."""
     opts = {
         "quiet": True, 
         "no_warnings": True, 
         "skip_download": True, 
         "noplaylist": True,
-        "extractor_args": {"youtube": {"player_client": ["android", "web"]}}
+        "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
+        "format": "best[height<=480][ext=mp4]/best[height<=720]/best" if is_video else "bestaudio/best"
     }
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
         opts["cookiefile"] = config.COOKIES_FILE

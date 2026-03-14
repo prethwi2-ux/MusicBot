@@ -52,12 +52,10 @@ def _make_stream(audio: AudioInfo, seek_secs: int = 0) -> MediaStream:
             ffmpeg_parameters=extra_ffmpeg or None,
         )
     else:
-        # Strictly disable video for audio-only requests
-        audio_ffmpeg = (extra_ffmpeg + " -vn").strip()
         return MediaStream(
             stream_path,
             audio_parameters=AudioQuality.HIGH,
-            ffmpeg_parameters=audio_ffmpeg or None,
+            ffmpeg_parameters=extra_ffmpeg or None,
         )
 
 
