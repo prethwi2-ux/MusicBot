@@ -17,6 +17,22 @@ from bot import config
 from bot.database.cache import audio_cache
 from bot.logger import LOGGER, log_error
 
+# ── Cookie Handlers ──────────────────────────────────────────────────────────────
+_TEMP_COOKIES = os.path.join(config.DOWNLOAD_DIR, "session_cookies.txt")
+
+def _initialize_cookies():
+    """Write COOKIES_CONTENT to a temp file if needed."""
+    if not config.COOKIES_FILE and config.COOKIES_CONTENT:
+        try:
+            with open(_TEMP_COOKIES, "w", encoding="utf-8") as f:
+                f.write(config.COOKIES_CONTENT)
+            config.COOKIES_FILE = _TEMP_COOKIES
+            LOGGER.info("Created cookies file from COOKIES_CONTENT environment variable.")
+        except Exception as e:
+            LOGGER.error("Failed to create cookies from content: %s", e)
+
+_initialize_cookies()
+
 # ── Audio info dataclass ─────────────────────────────────────────────────────────
 
 @dataclass
@@ -46,7 +62,12 @@ def _ydl_opts() -> dict:
         "noplaylist": True,
         "skip_download": True,
         "force_generic_extractor": False,
-        "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "web", "ios"],
+                "player_skip": ["webpage", "configs"] 
+            }
+        },
         "nocheckcertificate": True,
     }
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
@@ -118,27 +139,21 @@ async def download_audio(query: str, requested_by: int = 0, requested_name: str 
         
         # Robust stream URL extraction
         stream_url = None
-        formats = info.get("formats", [])
+        # Use the most reliable streamable URL found by yt-dlp
+        # Combined formats (audio+video) are much more stable for direct streaming than adaptive DASH fragments.
+        # PyTgCalls will automatically ignore the video track if we don't provide video_parameters in start_stream.
+        stream_url = info.get("url")
 
-        if is_video:
-            # Video Extraction: Look for combined formats (audio+video) <= 480p for stability
-            combined = [f for f in formats if f.get("vcodec") != "none" and f.get("acodec") != "none" and f.get("height", 0) <= 480]
+        if not stream_url:
+            # Fallback to searching formats if 'url' is missing
+            formats = info.get("formats", [])
+            # Prefer combined formats with height <= 480
+            combined = [f for f in formats if f.get("vcodec") != "none" and f.get("acodec") != "none"]
             if combined:
                 best_combined = sorted(combined, key=lambda x: x.get("height", 0) or 0, reverse=True)[0]
                 stream_url = best_combined.get("url")
-            else:
-                # Fallback to general best format if strictly 480p combined isn't found
-                stream_url = info.get("url")
-        else:
-            # Strictly Audio: Look for the best audio-only format (vcodec='none')
-            audio_only = [f for f in formats if f.get("vcodec") == "none" and f.get("acodec") != "none"]
-            if audio_only:
-                # Sort by bitrate (abr) and prefer standard extensions for better FFmpeg compatibility
-                best_audio = sorted(audio_only, key=lambda f: (f.get("abr", 0) or 0), reverse=True)[0]
-                stream_url = best_audio.get("url")
-            else:
-                # Fallback if no audio-only format is listed separately
-                stream_url = info.get("url")
+            elif formats:
+                stream_url = formats[-1].get("url")
         
         # Guard: if it's video but we didn't find a stream yet (unlikely)
         if is_video and not stream_url:
@@ -323,7 +338,12 @@ def _fetch_info(url: str) -> Optional[dict]:
         "no_warnings": True, 
         "skip_download": True, 
         "noplaylist": True,
-        "extractor_args": {"youtube": {"player_client": ["android", "web"]}}
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "web", "ios"],
+                "player_skip": ["webpage", "configs"]
+            }
+        }
     }
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
         opts["cookiefile"] = config.COOKIES_FILE

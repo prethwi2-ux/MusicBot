@@ -46,12 +46,16 @@ AUTO_LEAVE_DELAY: int = _get_int("AUTO_LEAVE_DELAY", 300)
 MAX_QUEUE_SIZE: int = _get_int("MAX_QUEUE_SIZE", 100)
 DOWNLOAD_DIR: str = os.environ.get("DOWNLOAD_DIR", "./downloads")
 COOKIES_FILE: str = os.environ.get("COOKIES_FILE", "")
+COOKIES_CONTENT: str = os.environ.get("COOKIES_CONTENT", "")
 
 # If COOKIES_FILE is not set in env, check if cookies.txt exists in root
 if not COOKIES_FILE:
     _root_cookies = _PROJECT_ROOT / "cookies.txt"
     if _root_cookies.exists():
         COOKIES_FILE = str(_root_cookies)
+    elif COOKIES_CONTENT:
+        # We will create a temp file in downloader.py if needed
+        pass
 
 # ── Quality Mapping ─────────────────────────────────────────────────────────────
 QUALITY_MAP = {
