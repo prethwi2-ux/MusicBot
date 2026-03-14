@@ -50,8 +50,6 @@ def _ydl_opts() -> dict:
     }
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
         opts["cookiefile"] = config.COOKIES_FILE
-    else:
-        opts["cookiesfrombrowser"] = ("chrome",) # Fallback for local PC
     return opts
 
 
@@ -67,8 +65,6 @@ def _search_opts() -> dict:
     }
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
         opts["cookiefile"] = config.COOKIES_FILE
-    else:
-        opts["cookiesfrombrowser"] = ("chrome",)
     return opts
 
 
@@ -324,8 +320,6 @@ def search_youtube_results_ydl(query: str, limit: int = 5) -> list[dict]:
         opts = {**_search_opts(), "extract_flat": True}
         if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
             opts["cookiefile"] = config.COOKIES_FILE
-        else:
-            opts["cookiesfrombrowser"] = ("chrome",)
         with yt_dlp.YoutubeDL(opts) as ydl:
             data = ydl.extract_info(search_query, download=False)
             for entry in (data.get("entries") or [])[:limit]:
@@ -353,8 +347,6 @@ def _fetch_info(url: str) -> Optional[dict]:
     }
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
         opts["cookiefile"] = config.COOKIES_FILE
-    else:
-        opts["cookiesfrombrowser"] = ("chrome",)
 
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
