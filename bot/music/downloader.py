@@ -62,12 +62,6 @@ def _ydl_opts() -> dict:
         "noplaylist": True,
         "skip_download": True,
         "force_generic_extractor": False,
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["android", "web", "ios"],
-                "player_skip": ["webpage", "configs"] 
-            }
-        },
         "nocheckcertificate": True,
     }
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
@@ -83,7 +77,6 @@ def _search_opts() -> dict:
         "noplaylist": True,
         "extract_flat": "in_playlist",
         "skip_download": True,
-        "extractor_args": {"youtube": {"player_client": ["android", "web"]}}
     }
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
         opts["cookiefile"] = config.COOKIES_FILE
@@ -338,12 +331,6 @@ def _fetch_info(url: str) -> Optional[dict]:
         "no_warnings": True, 
         "skip_download": True, 
         "noplaylist": True,
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["android", "web", "ios"],
-                "player_skip": ["webpage", "configs"]
-            }
-        }
     }
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
         opts["cookiefile"] = config.COOKIES_FILE
