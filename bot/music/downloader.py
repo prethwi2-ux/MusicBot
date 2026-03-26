@@ -333,14 +333,25 @@ def _fetch_info(url: str) -> Optional[dict]:
         "skip_download": True, 
         "noplaylist": True,
     }
+    has_cookies = False
     if config.COOKIES_FILE and os.path.exists(config.COOKIES_FILE):
         opts["cookiefile"] = config.COOKIES_FILE
+        has_cookies = True
 
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             return ydl.extract_info(url, download=False)
     except Exception as e:
-        LOGGER.error("fetch_info failed for %s: %s", url, e)
+        if has_cookies:
+            LOGGER.warning("fetch_info failed with cookies for %s: %s. Retrying without cookies.", url, e)
+            opts.pop("cookiefile", None)
+            try:
+                with yt_dlp.YoutubeDL(opts) as ydl2:
+                    return ydl2.extract_info(url, download=False)
+            except Exception as e2:
+                LOGGER.error("fetch_info retry failed for %s: %s", url, e2)
+        else:
+            LOGGER.error("fetch_info failed for %s: %s", url, e)
     return None
 
 
