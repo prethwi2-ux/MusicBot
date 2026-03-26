@@ -327,6 +327,7 @@ def search_youtube_results_ydl(query: str, limit: int = 5) -> list[dict]:
 def _fetch_info(url: str) -> Optional[dict]:
     """Fetch video metadata without downloading - blocking."""
     opts = {
+        "format": "bestaudio/best",
         "quiet": True, 
         "no_warnings": True, 
         "skip_download": True, 
